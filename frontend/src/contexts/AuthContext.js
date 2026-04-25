@@ -36,8 +36,14 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  const updateMe = async (patch) => {
+    const r = await api.patch("/auth/me", patch);
+    setUser(r.data);
+    return r.data;
+  };
+
   return (
-    <AuthCtx.Provider value={{ user, loading, login, sendOtp, verifyOtp, logout }}>
+    <AuthCtx.Provider value={{ user, loading, login, sendOtp, verifyOtp, logout, updateMe }}>
       {children}
     </AuthCtx.Provider>
   );

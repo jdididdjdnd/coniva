@@ -293,12 +293,41 @@ function Alerts() {
 }
 
 function Profile({ user, logout }) {
+  const { updateMe } = useAuth();
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(user?.name || "");
+  const [email, setEmail] = useState(user?.email || "");
+  const [busy, setBusy] = useState(false);
+  const save = async () => {
+    if (!name.trim()) { toast.error("Name is required"); return; }
+    setBusy(true);
+    try { await updateMe({ name, email }); toast.success("Profile updated"); setOpen(false); }
+    catch { toast.error("Update failed"); } finally { setBusy(false); }
+  };
   return (
     <div className="px-5 pt-4 space-y-4 fade-up">
       <h1 className="font-serif text-3xl">My Account</h1>
       <Card className="bg-[#0B132B] border-white/5 p-5 rounded-2xl">
-        <div className="font-serif text-2xl">{user?.name}</div>
-        <div className="text-sm text-white/50">{user?.email} · {user?.phone}</div>
+        <div className="flex justify-between items-start gap-3">
+          <div>
+            <div className="font-serif text-2xl">{user?.name}</div>
+            <div className="text-sm text-white/50">{user?.email} · {user?.phone}</div>
+          </div>
+          <Dialog open={open} onOpenChange={(v)=>{setOpen(v); if (v) { setName(user?.name||""); setEmail(user?.email||""); }}}>
+            <DialogTrigger asChild>
+              <Button data-testid="profile-edit-btn" size="sm" variant="outline" className="rounded-full border-white/15">Edit</Button>
+            </DialogTrigger>
+            <DialogContent className="bg-[#0B132B] border-white/10">
+              <DialogHeader><DialogTitle className="font-serif text-2xl">Edit profile</DialogTitle></DialogHeader>
+              <div className="space-y-3">
+                <div><div className="label-cap mb-1">Name</div><Input data-testid="profile-name-input" value={name} onChange={(e)=>setName(e.target.value)} className="bg-[#151C33] border-white/5"/></div>
+                <div><div className="label-cap mb-1">Email</div><Input data-testid="profile-email-input" value={email} onChange={(e)=>setEmail(e.target.value)} className="bg-[#151C33] border-white/5"/></div>
+                <div><div className="label-cap mb-1">Phone</div><Input value={user?.phone || ""} disabled className="bg-[#151C33] border-white/5 opacity-60"/></div>
+              </div>
+              <DialogFooter><Button data-testid="profile-save-btn" onClick={save} disabled={busy} className="rounded-full bg-gold text-[#050A1F]">{busy?"Saving...":"Save"}</Button></DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
       </Card>
       <Link to="/app/billing" data-testid="link-billing"><Card className="bg-[#0B132B] border-white/5 p-4 rounded-2xl flex items-center justify-between hover-lift"><div className="flex items-center gap-3"><CreditCard className="w-5 h-5 text-gold"/><span>Billing & AMC</span></div><ArrowRight className="w-4 h-4 text-white/40"/></Card></Link>
       <Link to="/app/service" data-testid="link-service"><Card className="bg-[#0B132B] border-white/5 p-4 rounded-2xl flex items-center justify-between hover-lift"><div className="flex items-center gap-3"><Wrench className="w-5 h-5 text-gold"/><span>Service & Support</span></div><ArrowRight className="w-4 h-4 text-white/40"/></Card></Link>

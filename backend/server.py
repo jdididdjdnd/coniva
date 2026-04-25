@@ -379,6 +379,22 @@ async def upd_lead(lid: str, payload: Dict[str, Any], user=Depends(require_role(
 async def get_customers(user=Depends(require_role("admin"))):
     return await db.users.find({"role": "customer"}, {"_id": 0, "password": 0}).to_list(500)
 
+@api_router.patch("/customers/{cid}")
+async def upd_customer(cid: str, payload: Dict[str, Any], user=Depends(require_role("admin"))):
+    payload.pop("id", None); payload.pop("password", None); payload.pop("role", None); payload.pop("created_at", None)
+    payload["updated_at"] = now_iso()
+    await db.users.update_one({"id": cid, "role": "customer"}, {"$set": payload})
+    return await db.users.find_one({"id": cid}, {"_id": 0, "password": 0})
+
+@api_router.patch("/auth/me")
+async def upd_me(payload: Dict[str, Any], user=Depends(get_current_user)):
+    allowed = {k: v for k, v in payload.items() if k in {"name", "email", "phone"}}
+    if not allowed:
+        raise HTTPException(400, "No editable fields")
+    allowed["updated_at"] = now_iso()
+    await db.users.update_one({"id": user["id"]}, {"$set": allowed})
+    return await db.users.find_one({"id": user["id"]}, {"_id": 0, "password": 0})
+
 @api_router.get("/quotations")
 async def get_quotations(user=Depends(require_role("admin"))):
     return await db.quotations.find({}, {"_id": 0}).sort("created_at", -1).to_list(500)
@@ -402,6 +418,13 @@ async def add_invoice(payload: Dict[str, Any], user=Depends(require_role("admin"
     inv.pop("_id", None)
     return inv
 
+@api_router.patch("/invoices/{iid}")
+async def upd_invoice(iid: str, payload: Dict[str, Any], user=Depends(require_role("admin"))):
+    payload.pop("id", None); payload.pop("number", None); payload.pop("created_at", None)
+    payload["updated_at"] = now_iso()
+    await db.invoices.update_one({"id": iid}, {"$set": payload})
+    return await db.invoices.find_one({"id": iid}, {"_id": 0})
+
 @api_router.get("/amc")
 async def get_amc(user=Depends(get_current_user)):
     q = {} if user["role"] == "admin" else {"customer_id": user["id"]}
@@ -412,8 +435,28 @@ async def get_amc(user=Depends(get_current_user)):
 async def get_inventory(user=Depends(require_role("admin"))):
     return await db.inventory.find({}, {"_id": 0}).to_list(500)
 
+@api_router.post("/inventory")
+async def add_inventory(payload: Dict[str, Any], user=Depends(require_role("admin"))):
+    item = {
+        "id": str(uuid.uuid4()),
+        "sku": payload.get("sku", f"NV-{str(uuid.uuid4())[:6].upper()}"),
+        "name": payload.get("name", "New Item"),
+        "category": payload.get("category", "Other"),
+        "stock": int(payload.get("stock", 0)),
+        "min_stock": int(payload.get("min_stock", 5)),
+        "price": float(payload.get("price", 0)),
+        "created_at": now_iso(),
+    }
+    await db.inventory.insert_one(dict(item))
+    item.pop("_id", None)
+    return item
+
 @api_router.patch("/inventory/{iid}")
 async def upd_inventory(iid: str, payload: Dict[str, Any], user=Depends(require_role("admin"))):
+    payload.pop("id", None); payload.pop("created_at", None)
+    if "stock" in payload: payload["stock"] = int(payload["stock"])
+    if "min_stock" in payload: payload["min_stock"] = int(payload["min_stock"])
+    if "price" in payload: payload["price"] = float(payload["price"])
     await db.inventory.update_one({"id": iid}, {"$set": payload})
     return await db.inventory.find_one({"id": iid}, {"_id": 0})
 
