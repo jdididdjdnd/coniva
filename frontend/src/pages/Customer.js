@@ -76,7 +76,7 @@ function Dashboard({ user }) {
     setRooms(r.data); setDevices(d.data); setScenes(s.data);
     if (r.data.length && !activeRoom) setActiveRoom(r.data[0].id);
   };
-  useEffect(() => { load(); }, [[load]]);
+  useEffect(() => { load(); }, []);
 
   const filtered = activeRoom ? devices.filter(d => d.room_id === activeRoom) : devices;
   const onlineCount = devices.filter(d => d.online).length;
@@ -327,7 +327,7 @@ function Billing() {
     }
   }, [poll]);
 
-  const poll = async (sid, attempts) => {
+  const poll = useCallback(async (sid, attempts) => {
     if (attempts >= 8) return;
     try {
       const r = await api.get(`/payments/checkout/status/${sid}`);
@@ -335,7 +335,7 @@ function Billing() {
       if (r.data.status === "expired") { toast.error("Payment expired"); return; }
       setTimeout(()=>poll(sid, attempts+1), 2000);
     } catch { setTimeout(()=>poll(sid, attempts+1), 2000); }
-  };
+  }, [poll]);
 
   const checkout = async (body) => {
     setBusy(true);
