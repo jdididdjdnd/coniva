@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: nivanovus-backend
+    env: python
+    rootDir: backend
+    plan: free
+    autoDeploy: true
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DB_NAME
+        value: nivanovus
+      # Set these in Render dashboard for real deployments:
+      # - MONGO_URL (recommended: MongoDB Atlas connection string)
+      # - JWT_SECRET
+      # - FRONTEND_URL (your Vercel production URL, e.g. https://your-app.vercel.app)
